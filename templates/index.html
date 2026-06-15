@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Agent Readiness Scanner</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 2.5rem; }
+    header h1 { font-size: 2rem; font-weight: 700; color: #38bdf8; }
+    header p  { color: #94a3b8; margin-top: 0.5rem; }
+
+    /* --- Search form --- */
+    form {
+      display: flex; gap: 0.75rem;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+    }
+    input[name=domain] {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 1rem;
+      padding: 0.65rem 1rem;
+    }
+    input[name=domain]:focus { outline: 2px solid #38bdf8; border-color: transparent; }
+    button {
+      background: #0ea5e9;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 0.65rem 1.5rem;
+      transition: background 0.2s;
+    }
+    button:hover { background: #38bdf8; }
+
+    /* --- Overall score card --- */
+    .score-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    .score-circle {
+      width: 110px; height: 110px; flex-shrink: 0;
+      border-radius: 50%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-weight: 700;
+      border: 6px solid;
+    }
+    .score-circle .number { font-size: 2.2rem; line-height: 1; }
+    .score-circle .label  { font-size: 0.75rem; color: #94a3b8; margin-top: 2px; }
+    .grade-A { border-color: #22c55e; color: #22c55e; }
+    .grade-B { border-color: #84cc16; color: #84cc16; }
+    .grade-C { border-color: #eab308; color: #eab308; }
+    .grade-D { border-color: #f97316; color: #f97316; }
+    .grade-F { border-color: #ef4444; color: #ef4444; }
+    .score-meta h2 { font-size: 1.3rem; color: #e2e8f0; }
+    .score-meta p  { color: #94a3b8; margin-top: 0.4rem; }
+    .grade-badge {
+      display: inline-block;
+      font-size: 1.1rem; font-weight: 700;
+      padding: 0.2rem 0.7rem;
+      border-radius: 6px;
+      margin-top: 0.5rem;
+    }
+
+    /* --- Subscores --- */
+    .section-title {
+      font-size: 1.1rem; font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .subscore-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 2rem; }
+    @media (max-width: 600px) { .subscore-grid { grid-template-columns: 1fr; } }
+    .subscore-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 1.2rem 1.4rem;
+    }
+    .subscore-card h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.6rem; }
+    .bar-track {
+      background: #0f172a;
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+      transition: width 0.6s ease;
+    }
+    .subscore-pct { font-size: 0.85rem; color: #94a3b8; }
+    .check-list { list-style: none; margin-top: 0.8rem; }
+    .check-list li { font-size: 0.82rem; margin-bottom: 3px; }
+    .check-list li.pass::before { content: '\2713  '; color: #22c55e; }
+    .check-list li.fail::before { content: '\2717  '; color: #ef4444; }
+
+    /* --- Recommendations --- */
+    .recommendations {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 1.4rem;
+    }
+    .recommendations ul { list-style: none; }
+    .recommendations li {
+      padding: 0.6rem 0;
+      border-bottom: 1px solid #334155;
+      font-size: 0.92rem;
+      color: #cbd5e1;
+    }
+    .recommendations li:last-child { border-bottom: none; }
+    .recommendations li::before { content: '\27A4  '; color: #f59e0b; }
+
+    .placeholder {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: #475569;
+    }
+    .placeholder svg { width: 64px; height: 64px; margin-bottom: 1rem; opacity: 0.4; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>&#x1F916; AI Agent Readiness Scanner</h1>
+    <p>Enter a domain to measure its readiness for AI agents &mdash; based on open web standards.</p>
+  </header>
+
+  <form method="post" action="/scan">
+    <input type="text" name="domain" placeholder="e.g. example.com"
+           value="{% if domain %}{{ domain }}{% endif %}" required />
+    <button type="submit">Scan</button>
+  </form>
+
+  {% if domain %}
+
+  <!-- Overall Score Card -->
+  <div class="score-card">
+    <div class="score-circle grade-{{ grade }}">
+      <span class="number">{{ overall }}</span>
+      <span class="label">/ 100</span>
+    </div>
+    <div class="score-meta">
+      <h2>{{ domain }}</h2>
+      <p>AI Agent Readiness Business Score</p>
+      <span class="grade-badge grade-{{ grade }}">Grade: {{ grade }}</span>
+    </div>
+  </div>
+
+  <!-- Subscores -->
+  <p class="section-title">Dimension Scores</p>
+  <div class="subscore-grid">
+    {% for ss in subscores %}
+    <div class="subscore-card">
+      <h3>{{ ss.name }}</h3>
+      <div class="bar-track">
+        <div class="bar-fill" style="width: {{ ss.pct }}%"></div>
+      </div>
+      <div class="subscore-pct">{{ ss.score }} / {{ ss.max_score }}</div>
+      <ul class="check-list">
+        {% for item in ss.passed %}
+        <li class="pass">{{ item }}</li>
+        {% endfor %}
+        {% for item in ss.failed %}
+        <li class="fail">{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Recommendations -->
+  {% if recommendations %}
+  <p class="section-title">Recommendations</p>
+  <div class="recommendations">
+    <ul>
+      {% for rec in recommendations %}
+      <li>{{ rec }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% else %}
+
+  <div class="placeholder">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+    </svg>
+    <p>Submit a domain above to run your first scan.</p>
+  </div>
+
+  {% endif %}
+
+</div>
+</body>
+</html>
